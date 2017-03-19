@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+	<meta charset="UTF-8">
+	<title></title>
+	<style>
+		#container{
+			width:600px;
+			height:400px;
+			position:relative;
+			left:600px;
+			border:3px solid #333;
+			overflow: hidden;
+		}
+		#imgs{
+			position: absolute;
+		}
+		#imgs:after{
+			content:"";
+			display:block;
+			clear:both;
+		}
+		.arrow{
+			display:none;
+			width:22px;
+			height:50px;
+			line-height: 50px;
+			position: absolute;
+			text-decoration: none;
+			text-align: center;
+			color: #fff;
+			background-color:#888888 ;
+			top: 175px;
+		}
+		#prev{
+			left:20px;
+		}
+		#next{
+			right:20px;
+		}
+		.arrow:hover{
+			background-color: #333333;
+		}
+		#container:hover .arrow{
+			display: block;
+		}
+		#container #indexs{
+			position: absolute;
+			bottom: 20px;
+			left: 200px;
+		}
+		#container ul{
+			list-style: none;
+			margin: 0;
+			padding:0;
+		}
+		#container ul li{
+			float: left;
+		}
+		#indexs li{
+			display: inline-block;
+			width:20px;
+			height: 20px;
+			line-height: 20px;
+			text-align: center;
+			margin-left: 20px;
+			background-color: #888888;
+			cursor: pointer;
+			border-radius: 50%;
+			color: #fff;
+		}
+		#indexs li.hover{
+			 background-color: #333333;
+		 }
+		#indexs li:hover{
+			background-color: #333333;
+		}
+	</style>
+</head>
+<body>
+<div id="container">
+	<ul id="imgs"></ul>
+	<ul id="indexs"></ul>
+	<a href="javascript:;" id="prev" class="arrow">&lt;</a>
+	<a href="javascript:;" id="next" class="arrow">&gt;</a>
+</div>
+<script src="js/jquery-1.11.3.js"></script>
+<script>
+	(function(){
+		$.getJSON("img.php",function(data){
+			var imgs;
+			imgs=data;
+			var adv={
+				DISTANCE:0,//总距离
+				LIWIDTH:0,
+				DURATION:2000,
+				STEPS:100,//步数
+				interval:0,//步频
+				step:0,//步长
+				timer:null,
+				moved:0,
+				WAIT:1000,
+				canAuto:true,
+				init:function(){
+					this.LIWIDTH=parseFloat(getComputedStyle($("#container")[0]).width);
+					this.interval=this.DURATION/this.STEPS;
+					this.updateView();//更新页面
+					$("#indexs").on("click","li",function(e){
+						var target= e.target;
+						var n=target.innerHTML-$("#indexs>.hover")[0].innerHTML;
+						this.move(n);
+					}.bind(this));
+					this.autoMove();
+					$("#container").on("mouseover",function(){
+						this.canAuto=false;
+					}.bind(this));
+					$("#prev").on("click",function(){
+						this.move(1);
+					}.bind(this));
+					$("#next").on("click",function(){
+						this.move(-1);
+					}.bind(this));
+					$("#container").on("mouseout",function(){
+						this.canAuto=true;
+					}.bind(this));
+				},
+				updateView:function(){
+					for(var j= 0,imgsHtml='',indexHtml='',len=imgs.length;
+							j<len;j++)
+					{
+						imgsHtml+="<li><img src='"+imgs[j].src+"'/></li>";
+						indexHtml+="<li>"+(j+1)+"</li>";
+					}
+					$("#imgs").html(imgsHtml);
+					$("#indexs").html(indexHtml);
+					$("#imgs").css("width",this.LIWIDTH*imgs.length+"px");
+					$("#indexs>li")[imgs[0].i].className="hover";
+				},
+				autoMove:function(){
+					//启动一次性定时器,任务:move,参数为1,等待时间为WAIT
+					this.timer=setTimeout(function(){
+						if(this.canAuto){
+							this.move(1);
+						}else{
+							this.autoMove();
+						}
+					}.bind(this),this.WAIT);
+				},
+				move:function(n){
+					clearTimeout(this.timer);
+					this.timer=null;
+					if(n<0){
+						imgs=imgs.splice(imgs.length+n,-n).concat(imgs);
+						this.updateView();//更新页面
+
+						var left=parseFloat(getComputedStyle($("#imgs")[0]).left);
+						var start=left-this.LIWIDTH*(-n);
+						$("#imgs").css("left",start+"px");
+						var end=0;
+					}else{
+						var start=parseFloat(getComputedStyle($("#imgs")[0]).left);
+						var end=-this.LIWIDTH*n;
+					}
+					this.DISTANCE=-(end-start);
+					this.step=this.DISTANCE/this.STEPS;
+					this.timer=setInterval(
+						this.moveStep.bind(this,n),
+						this.interval);
+				},
+				moveStep:function(n){
+					var left=parseFloat(getComputedStyle($("#imgs")[0]).left);
+					$("#imgs").css("left",left-this.step+"px");
+					this.moved++;
+					if(this.moved==this.STEPS){
+						clearInterval(this.timer);
+						this.timer=null;
+						this.moved=0;
+						if(n>0){
+							imgs=imgs.concat(imgs.splice(0,n));
+							this.updateView();
+						}
+						$("#imgs").css("left",0);
+						this.autoMove();
+					}
+				}
+			}
+			adv.init();
+		})
+	})();
+
+</script>
+</body>
+</html>
